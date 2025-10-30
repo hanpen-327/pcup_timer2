@@ -41,10 +41,11 @@ export default {
   },
   computed: {
     formattedTime() {
-      const totalSeconds = Math.floor(this.elapsedTime / 1000)
-      const minutes = Math.floor(totalSeconds / 60)
-      const seconds = totalSeconds % 60
-      return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+      const totalCentiseconds = Math.floor(this.elapsedTime / 10)
+      const minutes = Math.floor(totalCentiseconds / 6000)
+      const seconds = Math.floor((totalCentiseconds % 6000) / 100)
+      const centiseconds = totalCentiseconds % 100
+      return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(centiseconds).padStart(2, '0')}`
     }
   },
   methods: {
@@ -54,7 +55,7 @@ export default {
         const startTime = Date.now() - this.elapsedTime
         this.intervalId = setInterval(() => {
           this.elapsedTime = Date.now() - startTime
-        }, 100)
+        }, 10)
       }
     },
     stopTimer() {
