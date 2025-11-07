@@ -34,6 +34,8 @@ import { ref, computed, onUnmounted, onMounted } from 'vue'
 export default {
   name: 'TimerComponent',
   setup () {
+    // ==================== 状態管理 ====================
+    
     const elapsed = ref(0) // ミリ秒単位の経過時間
     const isRunning = ref(false)
     const intervalId = ref(null)
@@ -42,9 +44,13 @@ export default {
     const notification = ref('') // 通知メッセージ
     let startTime = 0 // Date.now() - elapsed の形で使う
     let notificationTimer = null // 通知を自動で消すタイマー
+    let ws = null // WebSocket接続
+
+    // ==================== タイマー制御 ====================
 
     const start = () => {
       if (isRunning.value) return
+      console.log('Timer started!')
       // 続きから開始できるように startTime を補正
       startTime = Date.now() - elapsed.value
       // 高精度表示のため更新間隔は 16ms に（約60fps）
@@ -151,6 +157,49 @@ export default {
       }
     }
 
+    // ==================== WebSocket処理 ====================
+
+    // WebSocketメッセージハンドラ
+    const handleWebSocketMessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        console.log('WebSocket メッセージ受信:', data)
+        
+        if (data.action === 'start_timer') {
+          start()
+        } else if (data.action === 'notify') {
+          const message = data.message || 'WebSocketから通知を受信しました'
+          showNotification(message)
+          reset()
+        }
+      } catch (error) {
+        console.error('WebSocket メッセージ解析エラー:', error)
+      }
+    }
+
+    // WebSocket接続を初期化
+    const initWebSocket = () => {
+      try {
+        ws = new WebSocket('ws://localhost:8081')
+        
+        ws.onopen = () => {
+          console.log('WebSocket 接続成功')
+        }
+        
+        ws.onmessage = handleWebSocketMessage
+        
+        ws.onerror = (error) => {
+          console.error('WebSocket エラー:', error)
+        }
+        
+        ws.onclose = () => {
+          console.log('WebSocket 接続終了')
+        }
+      } catch (error) {
+        console.error('WebSocket 初期化エラー:', error)
+      }
+    }
+
     // ==================== ライフサイクル ====================
 
     onMounted(() => {
@@ -158,6 +207,8 @@ export default {
       window.addEventListener('keydown', handleKeyPress)
       // postMessage イベントリスナーを登録
       window.addEventListener('message', handleMessage)
+      // WebSocket接続を初期化
+      initWebSocket()
     })
 
     onUnmounted(() => {
@@ -167,6 +218,10 @@ export default {
       // イベントリスナーの削除
       window.removeEventListener('keydown', handleKeyPress)
       window.removeEventListener('message', handleMessage)
+      // WebSocket接続を閉じる
+      if (ws) {
+        ws.close()
+      }
     })
 
     // 表示フォーマット: mm:ss.mmm （必要なら hh 部分も拡張できます）
