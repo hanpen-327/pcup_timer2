@@ -137,27 +137,34 @@ export default {
       }, 3000)
     }
 
-    // ブラウザ拡張機能からのメッセージを受信
+    // ==================== メッセージ受信処理 ====================
+    
+    // window.postMessage からの通知を受信
     const handleMessage = (event) => {
-      // セキュリティ: 必要に応じてoriginをチェック
-      // if (event.origin !== "期待するオリジン") return;
-      
       if (event.data && event.data.type === 'notify') {
+        console.log('通知を受信:', event.data.message)
         const message = event.data.message || '通知を受信しました'
+        // 通知を表示
         showNotification(message)
-        // リセットボタンと同じ挙動
+        // リセットボタンと同じ挙動を実行
         reset()
       }
     }
 
+    // ==================== ライフサイクル ====================
+
     onMounted(() => {
+      // キーボードイベントリスナーを登録
       window.addEventListener('keydown', handleKeyPress)
+      // postMessage イベントリスナーを登録
       window.addEventListener('message', handleMessage)
     })
 
     onUnmounted(() => {
+      // タイマーのクリーンアップ
       if (intervalId.value) clearInterval(intervalId.value)
       if (notificationTimer) clearTimeout(notificationTimer)
+      // イベントリスナーの削除
       window.removeEventListener('keydown', handleKeyPress)
       window.removeEventListener('message', handleMessage)
     })
